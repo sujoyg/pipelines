@@ -62,8 +62,7 @@ class Tube
   def invoke(klass, *args)
     @invocations += 1
 
-    options = args.last.kind_of?(Hash) ? args.pop : {}
-    options.merge! :order => @order, :parent => @parent
+    options = {:order => @order, :parent => @parent}
     segment = klass.new @dir, options
 
     step = segment.name
