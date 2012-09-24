@@ -1,3 +1,6 @@
+# 0.1.1
+  * Bug: Nested tubes were failing because of a conflict between global lock and thread lock.
+
 # 0.1.0
   * Feature: Tubes create a lock in the working directory which is only removed on a successful completion. Attempts to run another instance while the lock exists will fail.
 

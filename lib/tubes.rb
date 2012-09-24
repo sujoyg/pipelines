@@ -4,12 +4,12 @@ class Tube
   attr :dir
   attr :ended_at
   attr :exception
-  attr :lock
   attr :name
   attr :order
   attr :output
   attr :started_at
   attr :stats
+  attr :thread_lock
   attr :threads
 
   def initialize(dir=nil, options={})
@@ -19,7 +19,7 @@ class Tube
     @serial_count = 0
     @parallel_count = 0
 
-    @lock = @parent ? @parent.lock : Mutex.new
+    @thread_lock = @parent ? @parent.thread_lock : Mutex.new
     @stats = @parent ? @parent.stats : {}
 
     @name = underscore self.class.name.split('::')[-1]
@@ -78,7 +78,7 @@ class Tube
       if @type == :serial
         dispatch(segment, output_file, *args)
       elsif @type == :parallel
-        thread = Thread.new(@lock) do |lock|
+        thread = Thread.new(@thread_lock) do |lock|
           Thread.current[:lock] = lock
           Thread.current.abort_on_exception = true
 
@@ -94,7 +94,7 @@ class Tube
 
 
   def puts(string="")
-    @lock.synchronize do
+    @thread_lock.synchronize do
       if self.class == Tube
 	Kernel.puts "\033[32m[#{@order}]\033[0m #{string}"
       else
@@ -112,7 +112,7 @@ class Tube
     begin
       case @type
         when :parallel # When inside parallel.
-          thread = Thread.new(@lock) do |lock|
+          thread = Thread.new(@thread_lock) do |lock|
             Thread.current[:lock] = lock
             Thread.current.abort_on_exception = true
             child(mode, args).instance_eval &block
@@ -154,7 +154,7 @@ class Tube
     if @type == :serial
       @output = output
     elsif @type == :parallel
-      @lock.synchronize do
+      @thread_lock.synchronize do
         @output << output
       end
     end
