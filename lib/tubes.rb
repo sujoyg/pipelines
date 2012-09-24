@@ -43,6 +43,7 @@ class Tube
       	  lock
       	  unlocked_run(*args, &block)
 	  unlock
+	  notify
       	end
       end
     end
