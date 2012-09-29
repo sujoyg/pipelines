@@ -15,7 +15,7 @@ class Tube
   def initialize(dir=nil, options={})
     @dir = dir || File.join('/tmp', Time.now.strftime('%Y-%m-%d_%H:%M:%S'))
     @type = options[:type] || :serial
-    @parent = options[:parent]  # This is nil only for the top level tube.
+    @parent = options[:parent] # This is nil only for the top level tube.
     @serial_count = 0
     @parallel_count = 0
 
@@ -36,15 +36,16 @@ class Tube
 
     Dir.mkdir(@dir) unless Dir.exists?(@dir)
 
-    if @parent.nil?  # This is the top level tube.
+    if @parent.nil? # This is the top level tube.
       class << self
         alias_method :unlocked_run, :run
-      	def run(*args, &block)
-      	  lock
-      	  unlocked_run(*args, &block)
-	  unlock
-	  notify
-      	end
+
+        def run(*args, &block)
+          lock
+          unlocked_run(*args, &block)
+          unlock
+          notify
+        end
       end
     end
   end
@@ -82,7 +83,6 @@ class Tube
           Thread.current[:lock] = lock
           Thread.current.abort_on_exception = true
 
-          # This clobbers the @output. Perhaps make @output an array instead of a value and append to it under a lock.
           dispatch(segment, output_file, *args)
         end
         @threads << thread
@@ -96,9 +96,9 @@ class Tube
   def puts(string="")
     @thread_lock.synchronize do
       if self.class == Tube
-	Kernel.puts "\033[32m[#{@order}]\033[0m #{string}"
+        Kernel.puts "\033[32m[#{@order}]\033[0m #{string}"
       else
-      	Kernel.puts "\033[32m[#{@order}]\033[0m\033[36m[#{@name}]\033[0m #{string}"
+        Kernel.puts "\033[32m[#{@order}]\033[0m\033[36m[#{@name}]\033[0m #{string}"
       end
 
       STDOUT.flush
@@ -115,13 +115,20 @@ class Tube
           thread = Thread.new(@thread_lock) do |lock|
             Thread.current[:lock] = lock
             Thread.current.abort_on_exception = true
-            child(mode, args).instance_eval &block
+
+            tube = child(mode, args)
+            tube.instance_eval &block
+            tube.threads.each { |thread| thread.join } # Could be a parallel block inside a parallel block.
+            @thread_lock.synchronize do
+              @output << mode == :parallel ? tube.output.flatten(1) : tube.output
+            end
           end
           @threads << thread
         when :serial # When inside serial.
           tube = child(mode, args)
           tube.instance_eval &block
           tube.threads.each { |thread| thread.join }
+          @output = mode == :parallel ? tube.output.flatten(1) : tube.output
       end
     rescue => e
       @exception = e
@@ -170,22 +177,22 @@ class Tube
     output = args || @output
 
     order = case type
-             when :serial
-               @serial_count += 1
-               "#{@order}S#{@serial_count}"
-             when :parallel
-               @parallel_count += 1
-               "#{@order}P#{@parallel_count}"
-           end
+              when :serial
+                @serial_count += 1
+                "#{@order}S#{@serial_count}"
+              when :parallel
+                @parallel_count += 1
+                "#{@order}P#{@parallel_count}"
+            end
 
     Tube.new(@dir, :type => type, :output => output, :parent => self, :order => order, :started_at => started_at)
   end
 
   def underscore(string)
     string.gsub(/::/, '/').
-      gsub(/([A-Z]+)([A-Z][a-z])/,'\1_\2').
-      gsub(/([a-z\d])([A-Z])/,'\1_\2').
-      tr("-", "_").downcase
+        gsub(/([A-Z]+)([A-Z][a-z])/, '\1_\2').
+        gsub(/([a-z\d])([A-Z])/, '\1_\2').
+        tr("-", "_").downcase
   end
 
   def lock
