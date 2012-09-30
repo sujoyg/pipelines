@@ -27,7 +27,7 @@ class Tube
     @order = options.delete(:order) || ''
 
     @input = options.delete(:input)
-    @output = @type == :serial ? nil : []
+    @output = serial? ? nil : []
 
     @threads = []
 
@@ -75,17 +75,23 @@ class Tube
     output_file = segment_cache self, step
     if File.exists?(output_file)
       self.puts "Skipping: #{step}"
-      @output = JSON.load(File.read(output_file))["data"]
-      if @type == :serial
-        @input = @output
+      output = JSON.load(File.read(output_file))["data"]
+
+      if parallel?
+        @thread_lock.synchronize do
+          @output << output
+        end
+      elsif serial?
+        @output = output
+        @input = output
       end
     else
       self.puts "Running: #{step}"
 
-      if @type == :serial
+      if serial?
         dispatch(segment, output_file, *args)
         @input = @output
-      elsif @type == :parallel
+      elsif parallel?
         thread = Thread.new(@thread_lock) do |lock|
           Thread.current[:lock] = lock
           Thread.current.abort_on_exception = true
@@ -117,28 +123,35 @@ class Tube
 
   private
 
+  def serial?
+    @type == :serial
+  end
+
+  def parallel?
+    @type == :parallel
+  end
+
   def tube(mode, args=nil, &block)
     begin
-      case @type
-        when :parallel # When inside parallel.
-          thread = Thread.new(@thread_lock) do |lock|
-            Thread.current[:lock] = lock
-            Thread.current.abort_on_exception = true
+      if parallel? # When inside parallel.
+        thread = Thread.new(@thread_lock) do |lock|
+          Thread.current[:lock] = lock
+          Thread.current.abort_on_exception = true
 
-            tube = child(mode, args)
-            tube.instance_eval &block
-            tube.threads.each { |thread| thread.join } # Could be a parallel block inside a parallel block.
-            @thread_lock.synchronize do
-              @output << mode == :parallel ? tube.output.flatten(1) : tube.output
-            end
-          end
-          @threads << thread
-        when :serial # When inside serial.
           tube = child(mode, args)
           tube.instance_eval &block
-          tube.threads.each { |thread| thread.join }
-          @output = mode == :parallel ? tube.output.flatten(1) : tube.output
-          @input = @output
+          tube.threads.each { |thread| thread.join } # Could be a parallel block inside a parallel block.
+          @thread_lock.synchronize do
+            @output << mode == :parallel ? tube.output.flatten(1) : tube.output
+          end
+        end
+        @threads << thread
+      elsif serial?
+        tube = child(mode, args)
+        tube.instance_eval &block
+        tube.threads.each { |thread| thread.join }
+        @output = mode == :parallel ? tube.output.flatten(1) : tube.output
+        @input = @output
       end
     rescue => e
       @exception = e
@@ -180,9 +193,9 @@ class Tube
       f.write({:data => output}.to_json)
     end
 
-    if @type == :serial
+    if serial?
       @output = output
-    elsif @type == :parallel
+    elsif parallel?
       @thread_lock.synchronize do
         @output << output
       end
@@ -196,13 +209,12 @@ class Tube
 
 
   def child(type, args=nil)
-    order = case type
-              when :serial
-                @serial_count += 1
-                "#{@order}S#{@serial_count}"
-              when :parallel
-                @parallel_count += 1
-                "#{@order}P#{@parallel_count}"
+    order = if type == :serial
+              @serial_count += 1
+              "#{@order}S#{@serial_count}"
+            elsif type == :parallel
+              @parallel_count += 1
+              "#{@order}P#{@parallel_count}"
             end
 
     Tube.new(@dir, :type => type, :input => args || @input, :parent => self, :order => order, :started_at => started_at)
