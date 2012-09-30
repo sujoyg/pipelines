@@ -1,3 +1,6 @@
+# 0.1.5
+  * Bug: Parallel block should not append its input to its final output.
+
 # 0.1.4
   * Bug: `puts` in tubes was not returning nil.
   * Bug: The first invoked tube should not be passed any arguments unless explicitly specified.

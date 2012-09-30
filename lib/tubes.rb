@@ -14,8 +14,9 @@ class Tube
 
   def initialize(dir=nil, options={})
     @dir = dir || File.join('/tmp', Time.now.strftime('%Y-%m-%d_%H:%M:%S'))
-    @type = options[:type] || :serial
-    @parent = options[:parent] # This is nil only for the top level tube.
+    @type = options.delete(:type) || :serial
+    @parent = options.delete(:parent) # This is nil only for the top level tube.
+
     @serial_count = 0
     @parallel_count = 0
 
@@ -23,9 +24,11 @@ class Tube
     @stats = @parent ? @parent.stats : {}
 
     @name = underscore self.class.name.split('::')[-1]
-    @order = options[:order] || ""
+    @order = options.delete(:order) || ''
 
-    @output = options[:output] || (@type == :serial ? nil : [])
+    @input = options.delete(:input)
+    @output = @type == :serial ? nil : []
+
     @threads = []
 
     @options = options
@@ -73,11 +76,15 @@ class Tube
     if File.exists?(output_file)
       self.puts "Skipping: #{step}"
       @output = JSON.load(File.read(output_file))["data"]
+      if @type == :serial
+        @input = @output
+      end
     else
       self.puts "Running: #{step}"
 
       if @type == :serial
         dispatch(segment, output_file, *args)
+        @input = @output
       elsif @type == :parallel
         thread = Thread.new(@thread_lock) do |lock|
           Thread.current[:lock] = lock
@@ -93,7 +100,7 @@ class Tube
   end
 
 
-  def puts(string="")
+  def puts(string='')
     @thread_lock.synchronize do
       if self.class == Tube
         Kernel.puts "\033[32m[#{@order}]\033[0m #{string}"
@@ -104,7 +111,7 @@ class Tube
       STDOUT.flush
     end
 
-    nil  # Behave like Kernel.puts
+    nil # Behave like Kernel.puts
   end
 
 
@@ -131,6 +138,7 @@ class Tube
           tube.instance_eval &block
           tube.threads.each { |thread| thread.join }
           @output = mode == :parallel ? tube.output.flatten(1) : tube.output
+          @input = @output
       end
     rescue => e
       @exception = e
@@ -147,9 +155,9 @@ class Tube
     output = if segment.method(:run).arity > 0 # Optional arguments result in negative arity.
                if args.empty?
                  if @invocations > 1
-                   segment.send :run, @output
+                   segment.send :run, @input
                  else
-                   segment.send :run  # This should raise an argument mismatch error.
+                   segment.send :run # This should raise an argument mismatch error.
                  end
                else
                  segment.send :run, *args
@@ -157,7 +165,7 @@ class Tube
              elsif segment.method(:run).arity < 0
                if args.empty?
                  if @invocations > 1
-                   segment.send :run, @output
+                   segment.send :run, @input
                  else
                    segment.send :run
                  end
@@ -168,10 +176,8 @@ class Tube
                segment.send :run
              end
 
-    unless output_file.nil?
-      File.open(output_file, "w") do |f|
-        f.write({:data => output}.to_json)
-      end
+    File.open(output_file, "w") do |f|
+      f.write({:data => output}.to_json)
     end
 
     if @type == :serial
@@ -190,8 +196,6 @@ class Tube
 
 
   def child(type, args=nil)
-    output = args || @output
-
     order = case type
               when :serial
                 @serial_count += 1
@@ -201,7 +205,7 @@ class Tube
                 "#{@order}P#{@parallel_count}"
             end
 
-    Tube.new(@dir, :type => type, :output => output, :parent => self, :order => order, :started_at => started_at)
+    Tube.new(@dir, :type => type, :input => args || @input, :parent => self, :order => order, :started_at => started_at)
   end
 
   def underscore(string)
