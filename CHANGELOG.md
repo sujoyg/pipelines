@@ -1,3 +1,6 @@
+# 0.1.6
+  * Bug: Previous version did not include a complete fix.
+
 # 0.1.5
   * Bug: Parallel block should not append its input to its final output.
 
