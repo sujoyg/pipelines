@@ -64,7 +64,7 @@ class Tube
   def invoke(klass, *args)
     @invocations += 1
 
-    options = {:order => @order, :parent => @parent}
+    options = {:order => @order, :parent => self}
     segment = klass.new @dir, options
 
     step = segment.name
@@ -103,6 +103,8 @@ class Tube
 
       STDOUT.flush
     end
+
+    nil  # Behave like Kernel.puts
   end
 
 
@@ -142,9 +144,23 @@ class Tube
   end
 
   def dispatch(segment, output_file, *args)
-    output = if segment.method(:run).arity.abs > 0 # Optional arguments result in negative arity.
+    output = if segment.method(:run).arity > 0 # Optional arguments result in negative arity.
                if args.empty?
-                 segment.send :run, @output
+                 if @invocations > 1
+                   segment.send :run, @output
+                 else
+                   segment.send :run  # This should raise an argument mismatch error.
+                 end
+               else
+                 segment.send :run, *args
+               end
+             elsif segment.method(:run).arity < 0
+               if args.empty?
+                 if @invocations > 1
+                   segment.send :run, @output
+                 else
+                   segment.send :run
+                 end
                else
                  segment.send :run, *args
                end
