@@ -1,3 +1,6 @@
+# 0.1.4
+  * Bug: `puts` in tubes was not returning nil.
+  * Bug: The first invoked tube should not be passed any arguments unless explicitly specified.
 # 0.1.3
   * Bug: Output of a parallel block should be a concatenation of the output from its constituents.
 
