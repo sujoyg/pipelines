@@ -1,3 +1,6 @@
+# 0.1.8
+  * Feature: Input that will be used for the next segmment can now be queried from within the tube.
+
 # 0.1.7
   * Bug: Cached results of parallel blocks were not being loaded properly.
 
