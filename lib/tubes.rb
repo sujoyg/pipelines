@@ -6,6 +6,7 @@ class Tube
   attr :exception
   attr :name
   attr :order
+  attr :input
   attr :output
   attr :started_at
   attr :stats
