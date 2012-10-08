@@ -83,13 +83,13 @@ class Tube
       self.puts "Skipping: #{step}"
       output = JSON.load(File.read(output_file))["data"]
 
-      if parallel?
+      if serial?
+        @output = output
+        @input = output
+      elsif parallel?
         @thread_lock.synchronize do
           @output << output
         end
-      elsif serial?
-        @output = output
-        @input = output
       end
     else
       self.puts "Running: #{step}"
@@ -148,7 +148,7 @@ class Tube
           tube.instance_eval &block
           tube.threads.each { |thread| thread.join } # Could be a parallel block inside a parallel block.
           @thread_lock.synchronize do
-            @output << mode == :parallel ? tube.output.flatten(1) : tube.output
+            @output << (mode == :parallel ? tube.output.flatten(1) : tube.output)
           end
         end
         @threads << thread
@@ -156,7 +156,7 @@ class Tube
         tube = child(mode, args)
         tube.instance_eval &block
         tube.threads.each { |thread| thread.join }
-        @output = mode == :parallel ? tube.output.flatten(1) : tube.output
+        @output = (mode == :parallel ? tube.output.flatten(1) : tube.output)
         @input = @output
       end
     rescue => e

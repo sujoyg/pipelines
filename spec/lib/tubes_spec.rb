@@ -16,6 +16,38 @@ describe Tube do
     end
   end
 
+  describe '#tube' do
+    context 'when in parallel mode' do
+      let(:tube) { Tube.new :type => :parallel }
+
+      [:serial, :parallel].each do |mode|
+        it "should create a thread when launching a #{mode} child tube." do
+          threads = []
+
+          tube.send(:tube, mode) { threads << Thread.current }
+          tube.threads.each { |t| t.join }
+
+          threads.first.should_not == Thread.current
+        end
+      end
+    end
+
+    context 'when in serial mode' do
+      let(:tube) { Tube.new :type => :serial }
+
+      [:serial, :parallel].each do |mode|
+        it "should not create a thread when launching a #{mode} child tube." do
+          threads = []
+
+          tube.send(:tube, mode) { threads << Thread.current }
+          tube.threads.each { |t| t.join }
+
+          threads.first.should == Thread.current
+        end
+      end
+    end
+  end
+
   describe '#serial?' do
     it 'should be true for a serial tube.' do
       tube = Tube.new :type => :serial
