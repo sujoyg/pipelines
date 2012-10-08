@@ -1,3 +1,6 @@
+# 0.1.10
+  * Bug: Parallel and serial blocks where not setting their output correctly when themselves containing serial or parallel blocks.
+
 # 0.1.9
   * Bug: Do not create a tracking directory for logs, lockfile and caches if one was not specified.
 
