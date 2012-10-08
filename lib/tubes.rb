@@ -14,7 +14,7 @@ class Tube
   attr :threads
 
   def initialize(*args)
-    options = args.pop if args.last.is_a? Hash
+    options = args.last.is_a?(Hash) ? args.pop : {}
     dir = args.first
 
     @dir = dir
