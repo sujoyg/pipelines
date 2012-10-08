@@ -1,3 +1,6 @@
+# 0.1.9
+  * Bug: Do not create a tracking directory for logs, lockfile and caches if one was not specified.
+
 # 0.1.8
   * Feature: Input that will be used for the next segmment can now be queried from within the tube.
 
