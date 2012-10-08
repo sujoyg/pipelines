@@ -13,8 +13,11 @@ class Tube
   attr :thread_lock
   attr :threads
 
-  def initialize(dir=nil, options={})
-    @dir = dir || File.join('/tmp', Time.now.strftime('%Y-%m-%d_%H:%M:%S'))
+  def initialize(*args)
+    options = args.pop if args.last.is_a? Hash
+    dir = args.first
+
+    @dir = dir
     @type = options.delete(:type) || :serial
     @parent = options.delete(:parent) # This is nil only for the top level tube.
 
@@ -38,7 +41,9 @@ class Tube
     @started_at = options[:started_at] || Time.now
     @invocations = 0
 
-    Dir.mkdir(@dir) unless Dir.exists?(@dir)
+    unless @dir.nil?
+      Dir.mkdir(@dir) unless Dir.exists?(@dir)
+    end
 
     if @parent.nil? # This is the top level tube.
       class << self
@@ -74,7 +79,7 @@ class Tube
     step = segment.name
 
     output_file = segment_cache self, step
-    if File.exists?(output_file)
+    if output_file && File.exists?(output_file)
       self.puts "Skipping: #{step}"
       output = JSON.load(File.read(output_file))["data"]
 
@@ -165,6 +170,10 @@ class Tube
     # This should be implemented in the subclasses.
   end
 
+  def run
+    # This should be implemented in the subclasses.
+  end
+
   def dispatch(segment, output_file, *args)
     output = if segment.method(:run).arity > 0 # Optional arguments result in negative arity.
                if args.empty?
@@ -190,8 +199,10 @@ class Tube
                segment.send :run
              end
 
-    File.open(output_file, "w") do |f|
-      f.write({:data => output}.to_json)
+    if output_file
+      File.open(output_file, "w") do |f|
+        f.write({:data => output}.to_json)
+      end
     end
 
     if serial?
@@ -205,7 +216,7 @@ class Tube
 
 
   def segment_cache(tube, segment)
-    File.join tube.dir, "#{tube.order}-#{@invocations}-#{segment}.json"
+    File.join(tube.dir, "#{tube.order}-#{@invocations}-#{segment}.json") if tube.dir
   end
 
 
@@ -229,19 +240,23 @@ class Tube
   end
 
   def lock
-    lock = File.join @dir, "lock"
+    return if @dir.nil?
+
+    lock = File.join @dir, 'lock'
     if !@options[:force] && File.exists?(lock)
       raise "Another instance of the tubes seems to be running.\nPlease remove #{lock} if that is not the case."
     end
 
-    File.open(lock, "w") do |f|
+    File.open(lock, 'w') do |f|
       f.write $$
     end
   end
 
   def unlock
-    lock = File.join @dir, "lock"
-    File.delete lock
+    unless @dir.nil?
+      lock = File.join @dir, 'lock'
+      File.delete lock
+    end
 
     @ended_at = Time.now
   end
