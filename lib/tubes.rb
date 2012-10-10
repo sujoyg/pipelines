@@ -114,18 +114,22 @@ class Tube
 
   def puts(string='')
     @thread_lock.synchronize do
-      if self.class == Tube
-        Kernel.puts "\033[32m[#{@order}]\033[0m #{string}"
-      else
-        Kernel.puts "\033[32m[#{@order}]\033[0m\033[36m[#{@name}]\033[0m #{string}"
-      end
-
-      STDOUT.flush
+      unlocked_puts(string)
     end
 
     nil # Behave like Kernel.puts
   end
 
+
+  def unlocked_puts(string='')
+    if self.class == Tube
+      Kernel.puts "\033[32m[#{@order}]\033[0m #{string}"
+    else
+      Kernel.puts "\033[32m[#{@order}]\033[0m\033[36m[#{@name}]\033[0m #{string}"
+    end
+
+    STDOUT.flush
+  end
 
   private
 
