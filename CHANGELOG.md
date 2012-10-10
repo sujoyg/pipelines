@@ -1,3 +1,6 @@
+# 0.1.11
+  * Feature: Adding unlocked_puts to print stuff while holding a lock.
+
 # 0.1.10
   * Bug: Parallel and serial blocks where not setting their output correctly when themselves containing serial or parallel blocks.
 
