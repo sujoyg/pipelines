@@ -163,7 +163,7 @@ class Tube
         @output = (mode == :parallel ? tube.output.flatten(1) : tube.output)
         @input = @output
       end
-    rescue => e
+    rescue Exception => e
       @exception = e
       notify
       raise
