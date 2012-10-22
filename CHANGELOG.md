@@ -1,3 +1,6 @@
+# 0.1.12
+  * Bug: Catch all exceptions in invoke.
+
 # 0.1.11
   * Feature: Adding unlocked_puts to print stuff while holding a lock.
 
