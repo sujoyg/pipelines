@@ -1,4 +1,5 @@
 require 'json'
+require 'monitor'
 
 class Tube
   attr :dir
@@ -24,7 +25,7 @@ class Tube
     @serial_count = 0
     @parallel_count = 0
 
-    @thread_lock = @parent ? @parent.thread_lock : Mutex.new
+    @thread_lock = @parent ? @parent.thread_lock : Monitor.new
     @stats = @parent ? @parent.stats : {}
 
     @name = underscore self.class.name.split('::')[-1]
@@ -34,6 +35,7 @@ class Tube
     @output = serial? ? nil : []
 
     @threads = []
+    Thread.abort_on_exception = true
 
     @options = options
     @step = nil
@@ -72,13 +74,10 @@ class Tube
 
   def invoke(klass, *args)
     @invocations += 1
+    dir = File.join(@dir, "#{@order}-#{underscore(klass.name.split('::')[-1])}")
+    segment = klass.new dir, :order => @order, :parent => self
 
-    options = {:order => @order, :parent => self}
-    segment = klass.new @dir, options
-
-    step = segment.name
-
-    output_file = segment_cache self, step
+    output_file = segment_cache self, segment.name
     if output_file && File.exists?(output_file)
       self.puts "Skipping: #{step}"
       output = JSON.load(File.read(output_file))["data"]
@@ -92,23 +91,18 @@ class Tube
         end
       end
     else
-      self.puts "Running: #{step}"
+      self.puts "Running: #{segment.name}"
 
       if serial?
         dispatch(segment, output_file, *args)
         @input = @output
       elsif parallel?
-        thread = Thread.new(@thread_lock) do |lock|
-          Thread.current[:lock] = lock
-          Thread.current.abort_on_exception = true
-
+        thread = Thread.new do
           dispatch(segment, output_file, *args)
         end
         @threads << thread
       end
     end
-
-    Thread.current[:step] = step
   end
 
 
@@ -144,10 +138,7 @@ class Tube
   def tube(mode, args=nil, &block)
     begin
       if parallel? # When inside parallel.
-        thread = Thread.new(@thread_lock) do |lock|
-          Thread.current[:lock] = lock
-          Thread.current.abort_on_exception = true
-
+        thread = Thread.new do
           tube = child(mode, args)
           tube.instance_eval &block
           tube.threads.each { |thread| thread.join } # Could be a parallel block inside a parallel block.
@@ -178,29 +169,39 @@ class Tube
     # This should be implemented in the subclasses.
   end
 
+  def run_with_args(segment, args, options)
+    if args.empty?
+      if @invocations > 1
+        if options.present?
+          segment.send :run, @input, options
+        else
+          segment.send :run, @input
+        end
+      else
+        if options.present?
+          segment.send :run, options
+        else
+          segment.send :run
+        end
+      end
+    else
+      segment.send :run, *args
+    end
+  end
+
   def dispatch(segment, output_file, *args)
+    options = args.last.is_a?(Hash) ? args.pop : {}
+
     output = if segment.method(:run).arity > 0 # Optional arguments result in negative arity.
-               if args.empty?
-                 if @invocations > 1
-                   segment.send :run, @input
-                 else
-                   segment.send :run # This should raise an argument mismatch error.
-                 end
-               else
-                 segment.send :run, *args
-               end
+               run_with_args(segment, args, options)
              elsif segment.method(:run).arity < 0
-               if args.empty?
-                 if @invocations > 1
-                   segment.send :run, @input
-                 else
-                   segment.send :run
-                 end
-               else
-                 segment.send :run, *args
-               end
+               run_with_args(segment, args, options)
              else
-               segment.send :run
+               if options.present?
+                 segment.send :run, options
+               else
+                 segment.send :run
+               end
              end
 
     if output_file
