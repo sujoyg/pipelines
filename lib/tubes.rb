@@ -185,7 +185,7 @@ class Tube
         end
       end
     else
-      segment.send :run, *args
+      segment.send :run, *args, options
     end
   end
 
@@ -264,5 +264,17 @@ class Tube
     end
 
     @ended_at = Time.now
+  end
+
+  def set_stats(values)
+    @thread_lock.synchronize do 
+      @stats[@name] = values
+    end
+  end
+
+  def get_stats
+    @thread_lock.synchronize do
+      @stats[@name]
+    end
   end
 end
