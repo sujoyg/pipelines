@@ -74,12 +74,13 @@ class Tube
 
   def invoke(klass, *args)
     @invocations += 1
-    dir = File.join(@dir, "#{@order}-#{underscore(klass.name.split('::')[-1])}")
+   
+    dir = File.join(@dir, "#{description(klass)}")
     segment = klass.new dir, :order => @order, :parent => self
 
-    output_file = segment_cache self, segment.name
+    output_file = segment_cache segment
     if output_file && File.exists?(output_file)
-      self.puts "Skipping: #{step}"
+      self.puts "Skipping: #{@order}-#{@invocations}-#{segment.name}"
       output = JSON.load(File.read(output_file))["data"]
 
       if serial?
@@ -105,6 +106,14 @@ class Tube
     end
   end
 
+
+  def description(klass)
+    if @order.present?
+      "#{@order}-#{@invocations}-#{underscore(klass.name.split('::')[-1])}"
+    else
+      "#{@invocations}-#{underscore(klass.name.split('::')[-1])}"
+    end
+  end
 
   def puts(string='')
     @thread_lock.synchronize do
@@ -185,7 +194,11 @@ class Tube
         end
       end
     else
-      segment.send :run, *args, options
+      if options.present?
+      	segment.send :run, *args, options
+      else
+        segment.send :run, *args
+      end
     end
   end
 
@@ -197,11 +210,7 @@ class Tube
              elsif segment.method(:run).arity < 0
                run_with_args(segment, args, options)
              else
-               if options.present?
-                 segment.send :run, options
-               else
-                 segment.send :run
-               end
+               segment.send :run
              end
 
     if output_file
@@ -220,8 +229,8 @@ class Tube
   end
 
 
-  def segment_cache(tube, segment)
-    File.join(tube.dir, "#{tube.order}-#{@invocations}-#{segment}.json") if tube.dir
+  def segment_cache(segment)
+    File.join(@dir, "#{description(segment.class)}.json") if segment.dir
   end
 
 

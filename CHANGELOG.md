@@ -1,3 +1,7 @@
+# 0.1.15
+  * Bug: Options were being passed in to invokes even if they were not present.
+  * Bug: Cached output files were not being named correctly.
+
 # 0.1.14
   * Feature: Ability to set and retrieve stats about the pipeline using set_stats and get_stats.
   * Bug: Options were not passed in with invoke.
