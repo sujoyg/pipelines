@@ -1,3 +1,6 @@
+# 0.1.17
+  * Bug: present? is not available in vanilla ruby.
+
 # 0.1.16
   * Bug: Do not require a directory.
 
