@@ -75,7 +75,7 @@ class Tube
   def invoke(klass, *args)
     @invocations += 1
    
-    dir = File.join(@dir, "#{description(klass)}")
+    dir = File.join(@dir, "#{description(klass)}") unless @dir.nil?
     segment = klass.new dir, :order => @order, :parent => self
 
     output_file = segment_cache segment
@@ -108,10 +108,10 @@ class Tube
 
 
   def description(klass)
-    if @order.present?
-      "#{@order}-#{@invocations}-#{underscore(klass.name.split('::')[-1])}"
-    else
+    if @order.nil?
       "#{@invocations}-#{underscore(klass.name.split('::')[-1])}"
+    else
+      "#{@order}-#{@invocations}-#{underscore(klass.name.split('::')[-1])}"
     end
   end
 
