@@ -1,3 +1,6 @@
+# 0.1.16
+  * Bug: Do not require a directory.
+
 # 0.1.15
   * Bug: Options were being passed in to invokes even if they were not present.
   * Bug: Cached output files were not being named correctly.
