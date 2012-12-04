@@ -181,23 +181,23 @@ class Tube
   def run_with_args(segment, args, options)
     if args.empty?
       if @invocations > 1
-        if options.present?
-          segment.send :run, @input, options
-        else
+        if options.empty?
           segment.send :run, @input
+        else
+          segment.send :run, @input, options
         end
       else
-        if options.present?
-          segment.send :run, options
-        else
+        if options.empty?
           segment.send :run
+        else
+          segment.send :run, options
         end
       end
     else
-      if options.present?
-      	segment.send :run, *args, options
-      else
+      if options.empty?
         segment.send :run, *args
+      else
+      	segment.send :run, *args, options
       end
     end
   end
