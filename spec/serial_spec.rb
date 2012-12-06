@@ -20,7 +20,8 @@ module Serial
       serial do
         invoke FirstTask
         invoke SecondTask
-      end      
+      end
+      ['respect','run','return','value']
     end
   end
 end
@@ -31,6 +32,10 @@ describe Serial::Task do
     tube = Serial::Task.new
     tube.run
     tube.output.should == [20, 18, 16, 14, 12, 10, 8, 6, 4, 2]
+  end
+
+  it 'should respect the return value of Tube.run' do
+    Parallel::Task.new.run.should == ['respect','run','return','value']
   end
 end
 

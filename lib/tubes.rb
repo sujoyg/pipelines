@@ -53,9 +53,10 @@ class Tube
 
         def run(*args, &block)
           lock
-          unlocked_run(*args, &block)
+          results = unlocked_run(*args, &block)
           unlock
           notify
+          results
         end
       end
     end

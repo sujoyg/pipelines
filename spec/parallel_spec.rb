@@ -21,6 +21,7 @@ module Parallel
         invoke NumbersTask
         invoke LettersTask
       end
+      return ['respect','run','return','value']
     end
   end
 end
@@ -31,6 +32,10 @@ describe Parallel::Task do
     tube = Parallel::Task.new
     tube.run
     tube.output.should =~ [1, 2, 3, 4, 5, 'A', 'B', 'C', 'D', 'E']
+  end
+
+  it 'should respect the return value of Tube.run' do
+    Parallel::Task.new.run.should == ['respect','run','return','value']
   end
 end
 
