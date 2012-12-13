@@ -5,5 +5,5 @@ group :development do
 end
 
 group :test do
-  gem 'fakefs', :require => 'fakefs/safe'
+  gem 'fakefs', '~> 0.4.2', :require => 'fakefs/safe'
 end
