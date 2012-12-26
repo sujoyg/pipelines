@@ -83,7 +83,7 @@ class Tube
     output_file = segment_cache segment
     if output_file && File.exists?(output_file)
       self.puts "Skipping: #{@order}-#{@invocations}-#{segment.name}"
-      output = YAML.load(File.read(output_file))["data"]
+      output = YAML.load(File.read(output_file))[:data]
 
       if serial?
         @output = output
