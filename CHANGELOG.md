@@ -1,3 +1,6 @@
+# 0.1.20
+  * Fix: Tubes was not loading cached results on reruns.
+
 # 0.1.19
   * Bug: run always returns nil, regardless of what the output was.
 
