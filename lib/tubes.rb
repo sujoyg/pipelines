@@ -5,8 +5,8 @@ class Tube
   attr :dir
   attr :ended_at
   attr :exception
+  attr :invocations
   attr :name
-  attr :order
   attr :input
   attr :output
   attr :started_at
@@ -29,7 +29,7 @@ class Tube
     @stats = @parent ? @parent.stats : {}
 
     @name = underscore self.class.name.split('::')[-1]
-    @order = options.delete(:order) || ''
+    @order = options.delete(:order)
 
     @input = options.delete(:input)
     @output = serial? ? nil : []
@@ -82,7 +82,7 @@ class Tube
 
     output_file = segment_cache segment
     if output_file && File.exists?(output_file)
-      self.puts "Skipping: #{@order}-#{@invocations}-#{segment.name}"
+      segment.puts "\033[0;35mSkipping\033[0m"
       output = YAML.load(File.read(output_file))[:data]
 
       if serial?
@@ -94,7 +94,7 @@ class Tube
         end
       end
     else
-      self.puts "Running: #{segment.name}"
+      segment.puts "\033[0;32mRunning\033[0m"
 
       if serial?
         dispatch(segment, output_file, *args)
@@ -127,10 +127,18 @@ class Tube
 
 
   def unlocked_puts(string='')
-    if self.class == Tube
-      Kernel.puts "\033[32m[#{@order}]\033[0m #{string}"
+    if self.class == Tube || @parent.nil? # If @parent is missing, it is in the top level block.
+      if @order
+        Kernel.puts "\033[32m[#{@order}][#{@invocations}]\033[0m #{string}"
+      else
+        Kernel.puts "\033[33m[#{@invocations}]\033[0m #{string}"
+      end
     else
-      Kernel.puts "\033[32m[#{@order}]\033[0m\033[36m[#{@name}]\033[0m #{string}"
+      if @order
+        Kernel.puts "\033[32m[#{@order}][#{@name}][#{@parent.invocations}]\033[0m #{string}"
+      else
+        Kernel.puts "\033[32m[#{@name}][#{@parent.invocations}]\033[0m #{string}"
+      end
     end
 
     STDOUT.flush
