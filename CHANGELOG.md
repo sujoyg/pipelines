@@ -1,3 +1,7 @@
+# 0.2.1
+  * Feature: On screen logging displays thread number for a parallel block.
+  * Feature: (Breaking change) Improve naming of cache files.
+
 # 0.1.20
   * Fix: Tubes was not loading cached results on reruns.
 
