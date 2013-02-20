@@ -1,3 +1,6 @@
+# 0.2.2
+  * Feature: Tube instances have an attribute topdir that is the directory of the topmost tube.
+
 # 0.2.1
   * Feature: On screen logging displays thread number for a parallel block.
   * Feature: (Breaking change) Improve naming of cache files.

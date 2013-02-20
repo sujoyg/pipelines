@@ -13,11 +13,13 @@ class Tube
   attr :stats
   attr :thread_lock
   attr :threads
+  attr :topdir
 
   def initialize(*args)
     options = args.last.is_a?(Hash) ? args.pop : {}
     dir = args.first
 
+    @topdir = @parent ? @parent.topdir : dir
     @dir = dir
     @type = options.delete(:type) || :serial
     @parent = options.delete(:parent) # This is nil only for the top level tube.
