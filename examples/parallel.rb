@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
-require 'tubes'
+require 'pipelines'
 
-class NumbersTask < Tube
+class NumbersTask < Pipeline
   def run
     (1..10).map do |i|
       puts i
@@ -12,7 +12,7 @@ class NumbersTask < Tube
   end
 end
 
-class LettersTask < Tube
+class LettersTask < Pipeline
   def run
     ('A'..'J').map do |char|
       puts char
@@ -22,7 +22,7 @@ class LettersTask < Tube
 end
 
 
-class Tasks < Tube
+class Tasks < Pipeline
   def run
     parallel do
       invoke NumbersTask
@@ -33,7 +33,7 @@ end
 
 
 if __FILE__ == $0
-  tube = Tasks.new
-  tube.run
+  pipeline = Tasks.new
+  pipeline.run
 end
 

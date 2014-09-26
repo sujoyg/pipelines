@@ -1,21 +1,21 @@
 require File.expand_path '../spec_helper', __FILE__
-require File.expand_path '../../lib/tubes', __FILE__
+require File.expand_path '../../lib/pipelines', __FILE__
 
 module Combination
-  class NumbersTask < Tube
+  class NumbersTask < Pipeline
     def run(first)
       first + 10
     end
   end
 
-  class LettersTask < Tube
+  class LettersTask < Pipeline
     def run(first)
       (first.ord + 10).chr
     end
   end
 
 
-  class Task < Tube
+  class Task < Pipeline
     def run
       parallel do
         serial do
@@ -35,9 +35,9 @@ end
 
 describe Combination::Task do
   it 'should run.' do
-    tube = Combination::Task.new
-    tube.run
-    tube.output.should =~ [21, 'U']
+    pipeline = Combination::Task.new
+    pipeline.run
+    pipeline.output.should =~ [21, 'U']
   end
 end
 

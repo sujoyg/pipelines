@@ -1,7 +1,7 @@
 require 'yaml'
 require 'monitor'
 
-class Tube
+class Pipeline
   attr :dir
   attr :ended_at
   attr :exception
@@ -22,7 +22,7 @@ class Tube
     @topdir = @parent ? @parent.topdir : dir
     @dir = dir
     @type = options.delete(:type) || :serial
-    @parent = options.delete(:parent) # This is nil only for the top level tube.
+    @parent = options.delete(:parent) # This is nil only for the top level pipeline.
 
     @serial_count = 0
     @parallel_count = 0
@@ -49,7 +49,7 @@ class Tube
       Dir.mkdir(@dir) unless Dir.exists?(@dir)
     end
 
-    if @parent.nil? # This is the top level tube.
+    if @parent.nil? # This is the top level pipeline.
       class << self
         alias_method :unlocked_run, :run
 
@@ -67,12 +67,12 @@ class Tube
 
 
   def serial(args=nil, &block)
-    tube(:serial, args, &block)
+    pipeline(:serial, args, &block)
   end
 
 
   def parallel(args=nil, &block)
-    tube(:parallel, args, &block)
+    pipeline(:parallel, args, &block)
   end
 
 
@@ -119,6 +119,7 @@ class Tube
     end
   end
 
+
   def puts(string='')
     @thread_lock.synchronize do
       unlocked_puts(string)
@@ -129,7 +130,7 @@ class Tube
 
 
   def unlocked_puts(string='')
-    if self.class == Tube || @parent.nil? # If @parent is missing, it is in the top level block.
+    if self.class == Pipeline || @parent.nil? # If @parent is missing, it is in the top level block.
       if @order
         Kernel.puts "\033[32m[#{@order}][#{@invocations}]\033[0m #{string}"
       else
@@ -146,33 +147,36 @@ class Tube
     STDOUT.flush
   end
 
+
   private
 
   def serial?
     @type == :serial
   end
 
+
   def parallel?
     @type == :parallel
   end
 
-  def tube(mode, args=nil, &block)
+
+  def pipeline(mode, args=nil, &block)
     begin
       if parallel? # When inside parallel.
         thread = Thread.new do
-          tube = child(mode, args)
-          tube.instance_eval &block
-          tube.threads.each { |thread| thread.join } # Could be a parallel block inside a parallel block.
+          pipeline = child(mode, args)
+          pipeline.instance_eval &block
+          pipeline.threads.each { |thread| thread.join } # Could be a parallel block inside a parallel block.
           @thread_lock.synchronize do
-            @output << (mode == :parallel ? tube.output.flatten(1) : tube.output)
+            @output << (mode == :parallel ? pipeline.output.flatten(1) : pipeline.output)
           end
         end
         @threads << thread
       elsif serial?
-        tube = child(mode, args)
-        tube.instance_eval &block
-        tube.threads.each { |thread| thread.join }
-        @output = (mode == :parallel ? tube.output.flatten(1) : tube.output)
+        pipeline = child(mode, args)
+        pipeline.instance_eval &block
+        pipeline.threads.each { |thread| thread.join }
+        @output = (mode == :parallel ? pipeline.output.flatten(1) : pipeline.output)
         @input = @output
       end
     rescue Exception => e
@@ -182,13 +186,16 @@ class Tube
     end
   end
 
+
   def notify
     # This should be implemented in the subclasses.
   end
 
+
   def run
     # This should be implemented in the subclasses.
   end
+
 
   def run_with_args(segment, args, options)
     if args.empty?
@@ -213,6 +220,7 @@ class Tube
       end
     end
   end
+
 
   def dispatch(segment, output_file, *args)
     options = args.last.is_a?(Hash) ? args.pop : {}
@@ -255,8 +263,9 @@ class Tube
               "#{@order}P#{@parallel_count}"
             end
 
-    Tube.new(@dir, :type => type, :input => args || @input, :parent => self, :order => order, :started_at => started_at)
+    Pipeline.new(@dir, :type => type, :input => args || @input, :parent => self, :order => order, :started_at => started_at)
   end
+
 
   def underscore(string)
     string.gsub(/::/, '/').
@@ -265,18 +274,20 @@ class Tube
         tr("-", "_").downcase
   end
 
+
   def lock
     return if @dir.nil?
 
     lock = File.join @dir, 'lock'
     if !@options[:force] && File.exists?(lock)
-      raise "Another instance of the tubes seems to be running.\nPlease remove #{lock} if that is not the case."
+      raise "Another instance of the pipelines seems to be running.\nPlease remove #{lock} if that is not the case."
     end
 
     File.open(lock, 'w') do |f|
       f.write $$
     end
   end
+
 
   def unlock
     unless @dir.nil?
@@ -287,11 +298,13 @@ class Tube
     @ended_at = Time.now
   end
 
+
   def set_stats(values)
     @thread_lock.synchronize do 
       @stats[@name] = values
     end
   end
+
 
   def get_stats
     @thread_lock.synchronize do

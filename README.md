@@ -1,14 +1,14 @@
 # Overview
 
-`Tubes` is simple way to build a pipeline of tasks. These tasks can be configured to run in serial, parallel or any combination thereof.
+`Pipelines` is simple way to build a pipeline of tasks. These tasks can be configured to run in serial, parallel or any combination thereof.
 
 # Examples
 ## Parallel Tasks
 ```ruby
 require 'rubygems'
-require 'tubes'
+require 'pipelines'
 
-class NumbersTask < Tube
+class NumbersTask < Pipeline
   def run
     (1..10).each do |i|
       puts i
@@ -17,7 +17,7 @@ class NumbersTask < Tube
   end
 end
 
-class LettersTask < Tube
+class LettersTask < Pipeline
   def run
     ('A'..'J').each do |char|
       puts char
@@ -27,7 +27,7 @@ class LettersTask < Tube
 end
 
 
-class Tasks < Tube
+class Tasks < Pipeline
   def run
     parallel do
       invoke NumbersTask
@@ -38,26 +38,26 @@ end
 
 
 if __FILE__ == $0
-  tube = Tasks.new
-  tube.run
+  pipeline = Tasks.new
+  pipeline.run
 end
 ```
 ## Serial Tasks
 ```ruby
-class FirstTask < Tube
+class FirstTask < Pipeline
   def run
     # Do something
   end
 end
 
-class SecondTask < Tube
+class SecondTask < Pipeline
   def run
     # Do something
   end
 end
 
 
-class Tasks < Tube
+class Tasks < Pipeline
   def run
     serial do
       invoke FirstTask
@@ -68,28 +68,28 @@ end
 
 
 if __FILE__ == $0
-  tube = Tasks.new
-  tube.run
+  pipeline = Tasks.new
+  pipeline.run
 end
 ```
 
 ## Combo Task
 
 ```ruby
-class NumbersTask < Tube
+class NumbersTask < Pipeline
   def run(start)
     # Do something
   end
 end
 
-class LettersTask < Tube
+class LettersTask < Pipeline
   def run(start)
     # Do something
   end
 end
 
 
-class Tasks < Tube
+class Tasks < Pipeline
   def run
     parallel do
       serial do
@@ -107,7 +107,7 @@ end
 
 
 if __FILE__ == $0
-  tube = Tasks.new
-  tube.run
+  pipeline = Tasks.new
+  pipeline.run
 end
 ```

@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
-require 'tubes'
+require 'pipelines'
 
-class NumbersTask < Tube
+class NumbersTask < Pipeline
   def run(first)
     last = first + 10
     (first..last).map do |i|
@@ -15,7 +15,7 @@ class NumbersTask < Tube
   end
 end
 
-class LettersTask < Tube
+class LettersTask < Pipeline
   def run(first)
     last = (first.ord + 10).chr
     (first..last).map do |i|
@@ -28,7 +28,7 @@ class LettersTask < Tube
 end
 
 
-class Tasks < Tube
+class Tasks < Pipeline
   def run
     parallel do
       serial do
@@ -46,7 +46,7 @@ end
 
 
 if __FILE__ == $0
-  tube = Tasks.new
-  tube.run
+  pipeline = Tasks.new
+  pipeline.run
 end
 

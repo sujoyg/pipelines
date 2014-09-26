@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby
 
 require 'rubygems'
-require 'tubes'
+require 'pipelines'
 
-class FirstTask < Tube
+class FirstTask < Pipeline
   def run
     output = []
 
@@ -18,7 +18,7 @@ class FirstTask < Tube
   end
 end
 
-class SecondTask < Tube
+class SecondTask < Pipeline
   def run(input)
     input.each do |i|
       puts i
@@ -28,7 +28,7 @@ class SecondTask < Tube
 end
 
 
-class Tasks < Tube
+class Tasks < Pipeline
   def run
     serial do
       invoke FirstTask
@@ -39,7 +39,7 @@ end
 
 
 if __FILE__ == $0
-  tube = Tasks.new
-  tube.run
+  pipeline = Tasks.new
+  pipeline.run
 end
 
